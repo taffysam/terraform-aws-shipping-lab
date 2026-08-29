@@ -1,0 +1,32 @@
+# Terraform working directories
+**/.terraform/**
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+
+# Terraform variable files
+*.tfvars
+*.tfvars.json
+
+# Allow safe example variable files
+!*.example.tfvars
+!**/*.example.tfvars
+
+# Terraform plan files
+*.tfplan
+tfplan
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Terraform CLI configuration
+.terraformrc
+terraform.rc
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
