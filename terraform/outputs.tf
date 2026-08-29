@@ -22,3 +22,8 @@ output "website_url" {
   description = "URL of the lab web application"
   value       = "http://${aws_instance.web.public_ip}"
 }
+
+output "github_terraform_role_arn" {
+  description = "IAM role assumed by GitHub Actions through OIDC"
+  value       = aws_iam_role.github_terraform.arn
+}
