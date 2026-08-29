@@ -51,16 +51,10 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
-          role-to-assume: "arn:aws:iam::<YOUR-ACCOUNT-ID>:role/terraform-shipping-lab-github-terraform"
-          role-session-name: terraform-shipping-lab-ci
-          aws-region: af-south-1
-	  
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6.2.3
-        with:
           role-to-assume: "arn:aws:iam::325502190209:role/terraform-shipping-lab-github-terraform"
           role-session-name: terraform-shipping-lab-ci
           aws-region: af-south-1
+	
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
