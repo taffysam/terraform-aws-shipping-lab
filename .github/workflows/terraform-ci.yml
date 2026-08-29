@@ -48,8 +48,9 @@ jobs:
         run: terraform plan -var-file="environments/lab.example.tfvars" -no-color
 
 
-  deploy-oidc-test:
+    deploy:
     needs: terraform
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     environment: lab
@@ -58,25 +59,32 @@ jobs:
       id-token: write
       contents: read
 
+    defaults:
+      run:
+        working-directory: terraform
+
     steps:
-      - name: Inspect deployment OIDC claims
-        shell: bash
-        run: |
-          TOKEN=$(curl -sLS \
-            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
-            | jq -r '.value')
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
-          PAYLOAD="${PAYLOAD}$(printf '=%.0s' $(seq 1 $(( (4 - ${#PAYLOAD} % 4) % 4 ))))"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-          echo "$PAYLOAD" | tr '_-' '/+' | base64 -d | jq '{
-            aud,
-            sub,
-            repository,
-            repository_id,
-            repository_owner,
-            repository_owner_id,
-            ref,
-            environment
-          }'
+      - name: Configure AWS deploy credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: "arn:aws:iam::325502190209:role/terraform-shipping-lab-github-deploy"
+          role-session-name: terraform-shipping-lab-deploy
+          aws-region: af-south-1
+
+      - name: Verify AWS deploy identity
+        run: aws sts get-caller-identity
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="environments/lab.example.tfvars" -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply tfplan
