@@ -1,62 +1,75 @@
-resource "aws_iam_openid_connect_provider" "github" {
-  url = "https://token.actions.githubusercontent.com"
+name: Terraform CI
 
-  client_id_list = [
-    "sts.amazonaws.com"
-  ]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${local.project_name}-github-oidc"
-    }
-  )
-}
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
 
-data "aws_iam_policy_document" "github_actions_trust" {
-  statement {
-    effect = "Allow"
+    permissions:
+      id-token: write
+      contents: read
 
-    actions = [
-      "sts:AssumeRoleWithWebIdentity"
-    ]
+    defaults:
+      run:
+        working-directory: terraform
 
-    principals {
-      type = "Federated"
-      identifiers = [
-        aws_iam_openid_connect_provider.github.arn
-      ]
-    }
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      
+	
 
-      values = [
-        "sts.amazonaws.com"
-      ]
-    }
+      - name: Inspect GitHub OIDC claims
+        shell: bash
+        run: |
+          TOKEN=$(curl -sLS \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
+            | jq -r '.value')
 
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:sub"
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
+          PAYLOAD="${PAYLOAD}$(printf '=%.0s' $(seq 1 $(( (4 - ${#PAYLOAD} % 4) % 4 ))))"
 
-      values = [
-        "repo:taffysam/terraform-aws-shipping-lab:ref:refs/heads/main"
-      ]
-    }
-  }
-}
+          echo "$PAYLOAD" | tr '_-' '/+' | base64 -d | jq '{
+            aud,
+            sub,
+            repository,
+            repository_id,
+            repository_owner,
+            repository_owner_id,
+            ref
+          }'
 
-resource "aws_iam_role" "github_terraform" {
-  name = "${local.project_name}-github-terraform"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: "arn:aws:iam::<YOUR-ACCOUNT-ID>:role/terraform-shipping-lab-github-terraform"
+          role-session-name: terraform-shipping-lab-ci
+          aws-region: af-south-1
+	  
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: "arn:aws:iam::325502190209:role/terraform-shipping-lab-github-terraform"
+          role-session-name: terraform-shipping-lab-ci
+          aws-region: af-south-1
 
-  assume_role_policy = data.aws_iam_policy_document.github_actions_trust.json
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${local.project_name}-github-terraform"
-    }
-  )
-}
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate
