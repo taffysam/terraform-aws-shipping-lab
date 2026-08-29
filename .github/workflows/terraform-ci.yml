@@ -9,49 +9,26 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-
     permissions:
-      id-token: write
-      contents: read
+     id-token: write
+     contents: read
 
     defaults:
       run:
         working-directory: terraform
 
-    steps:
+        steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Inspect GitHub OIDC claims
-        shell: bash
-        run: |
-          RESPONSE=$(curl -sS \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-
-          TOKEN=$(echo "$RESPONSE" | jq -r '.value')
-
-          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
-
-          PAYLOAD_PADDED="${PAYLOAD}$(printf '=%.0s' $(seq 1 $(( (4 - ${#PAYLOAD} % 4) % 4 ))))"
-
-          echo "$PAYLOAD_PADDED" | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{
-            aud,
-            sub,
-            repository,
-            repository_id,
-            repository_owner,
-            repository_owner_id,
-            ref
-          }'
-
+            
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/terraform-shipping-lab-github-terraform
+          role-to-assume: arn:aws:iam::325502190209:role/terraform-shipping-lab-github-terraform
           aws-region: af-south-1
 
       - name: Verify AWS identity
