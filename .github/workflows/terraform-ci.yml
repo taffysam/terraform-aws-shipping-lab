@@ -46,3 +46,37 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan -var-file="environments/lab.example.tfvars" -no-color
+
+
+  deploy-oidc-test:
+    needs: terraform
+    runs-on: ubuntu-latest
+
+    environment: lab
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Inspect deployment OIDC claims
+        shell: bash
+        run: |
+          TOKEN=$(curl -sLS \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
+            | jq -r '.value')
+
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
+          PAYLOAD="${PAYLOAD}$(printf '=%.0s' $(seq 1 $(( (4 - ${#PAYLOAD} % 4) % 4 ))))"
+
+          echo "$PAYLOAD" | tr '_-' '/+' | base64 -d | jq '{
+            aud,
+            sub,
+            repository,
+            repository_id,
+            repository_owner,
+            repository_owner_id,
+            ref,
+            environment
+          }'
