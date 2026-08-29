@@ -52,6 +52,7 @@ data "aws_iam_policy_document" "github_deploy_permissions" {
       "ec2:ModifyVpcAttribute",
       "ec2:CreateSubnet",
       "ec2:DeleteSubnet",
+      "ec2:ModifyInstanceAttribute",
       "ec2:ModifySubnetAttribute",
       "ec2:CreateInternetGateway",
       "ec2:AttachInternetGateway",
