@@ -18,14 +18,12 @@ jobs:
       run:
         working-directory: terraform
 
-    steps:
+        steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-      
-	
 
       - name: Inspect GitHub OIDC claims
         shell: bash
@@ -48,15 +46,14 @@ jobs:
             ref
           }'
 
-      
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: "arn:aws:iam::325502190209:role/terraform-shipping-lab-github-terraform"
           role-session-name: terraform-shipping-lab-ci
           aws-region: af-south-1
-
-      - name: Verify AWS identity
+		  
+	  - name: Verify AWS identity
         run: aws sts get-caller-identity
 
       - name: Terraform Format Check
@@ -66,4 +63,4 @@ jobs:
         run: terraform init -backend=false
 
       - name: Terraform Validate
-        run: terraform validate
+        run: terraform validate	  
