@@ -9,15 +9,16 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+
     permissions:
-     id-token: write
-     contents: read
+      id-token: write
+      contents: read
 
     defaults:
       run:
         working-directory: terraform
 
-        steps:
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -47,11 +48,10 @@ jobs:
             ref
           }'
 
-           
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: arn:aws:iam::325502190209:role/terraform-shipping-lab-github-terraform
+          role-to-assume: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/terraform-shipping-lab-github-terraform
           aws-region: af-south-1
 
       - name: Verify AWS identity
