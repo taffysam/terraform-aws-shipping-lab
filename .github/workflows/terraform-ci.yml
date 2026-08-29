@@ -53,7 +53,7 @@ jobs:
           role-session-name: terraform-shipping-lab-ci
           aws-region: af-south-1
 		  
-	  - name: Verify AWS identity
+      - name: Verify AWS identity
         run: aws sts get-caller-identity
 
       - name: Terraform Format Check
